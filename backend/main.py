@@ -80,6 +80,14 @@ class SeedImageResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class GeneratedImageResponse(BaseModel):
+    id: str
+    stressor: Optional[str]
+    storage_key: str
+    confidence_score: Optional[float]
+    class Config:
+        from_attributes = True
+
 class ProjectResponse(BaseModel):
     id: str
     name: str
@@ -93,6 +101,7 @@ class ProjectResponse(BaseModel):
     image_count: int
     label_count: int
     seed_images: List[SeedImageResponse] = []
+    generated_images: List[GeneratedImageResponse] = []
     created_at: Optional[Any]
     updated_at: Optional[Any]
 
@@ -128,7 +137,10 @@ def list_projects_endpoint(db: Session = Depends(get_db)):
 
 @app.get("/api/projects/{project_id}", response_model=ProjectResponse)
 def get_project_endpoint(project_id: str, db: Session = Depends(get_db)):
-    project = db.query(Project).options(joinedload(Project.seed_images)).filter(Project.id == project_id).first()
+    project = db.query(Project).options(
+        joinedload(Project.seed_images),
+        joinedload(Project.generated_images)
+    ).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project

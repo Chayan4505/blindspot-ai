@@ -22,6 +22,12 @@ export interface Project {
   image_count: number;
   label_count: number;
   seed_images: { id: string; filename: string; url: string }[];
+  generated_images: { 
+    id: string; 
+    stressor: string; 
+    storage_key: string; 
+    confidence_score: number 
+  }[];
   created_at?: string;
   updated_at?: string;
 }

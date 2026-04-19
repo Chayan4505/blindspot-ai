@@ -188,15 +188,17 @@ def full_pipeline_task(self, project_id: str):
         db.query(GeneratedImage).filter(GeneratedImage.project_id == project_id).delete()
         
         for fpath, stressor_key in refined_pairs:
+            # Full relative path for the frontend media server
+            rel_path = f"generated/{project_id}/raw/{os.path.basename(fpath)}"
+            
             # Generate a mock confidence score based on the stressor severity
-            # This simulates a model performing poorly on these edge cases
             conf = 0.5 + (0.4 - 0.1 * len(stressor_key)) # pseudo-random low confidence
             conf = max(0.1, min(0.65, conf)) 
             
             gen = GeneratedImage(
                 project_id=project_id,
                 stressor=stressor_key,
-                storage_key=os.path.basename(fpath),
+                storage_key=rel_path,
                 confidence_score=conf
             )
             db.add(gen)

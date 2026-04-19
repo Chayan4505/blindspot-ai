@@ -35,12 +35,20 @@ NEGATIVE_PROMPT = (
 )
 
 
-def build_prompt(object_name: str, stressor_key: str, scene_context: str = "industrial environment") -> str:
+def build_prompt(object_name: str, stressor_key: str, scene_context: Optional[str] = None) -> str:
     stressor_desc = STRESSOR_PROMPTS.get(stressor_key, "unusual lighting conditions")
+    
+    # Smart context detection
+    if not scene_context:
+        if "drone" in object_name.lower() or "uav" in object_name.lower():
+            scene_context = "aerial high-altitude view, sky background, looking down at terrain"
+        else:
+            scene_context = "industrial environment, realistic background"
+
     return (
         f"photorealistic image of {object_name} in {scene_context}, "
         f"{stressor_desc}, "
-        f"professional photography, RAW photo, high detail, 8k resolution, "
+        f"professional photography, drone footage style, RAW photo, high detail, 8k resolution, "
         f"realistic sensor data, ground truth training image"
     )
 
@@ -150,7 +158,23 @@ def _mock_generate(project_id, vulnerability_vector, output_path, seed_image_pat
                     logger.warning(f"Failed to use seed {seed_f}: {e}")
                     img = Image.new("RGB", (512, 512), color=(40, 40, 40))
             else:
-                img = Image.new("RGB", (512, 512), color=(40, 40, 40))
+                # Generate a thematic mock image (e.g. Drone silhouette)
+                img = Image.new("RGB", (512, 512), color=(20, 25, 40))
+                draw = ImageDraw.Draw(img)
+                # Draw a simple drone-like shape if it's a drone project
+                center_x, center_y = 256, 256
+                # Main body
+                draw.ellipse([center_x-40, center_y-20, center_x+40, center_y+20], fill=(100, 110, 130))
+                # Rotors / Arms
+                for angle in [45, 135, 225, 315]:
+                    import math
+                    rad = math.radians(angle)
+                    arm_x = center_x + math.cos(rad) * 60
+                    arm_y = center_y + math.sin(rad) * 60
+                    draw.line([center_x, center_y, arm_x, arm_y], fill=(150, 160, 180), width=8)
+                    draw.ellipse([arm_x-20, arm_y-10, arm_x+20, arm_y+10], fill=(200, 210, 230))
+                
+                draw.text((20, 20), "AxiomSynth Drone Mock", fill=(0, 210, 255))
 
             draw = ImageDraw.Draw(img)
             # Add subtle tech overlay to indicate it's a synthetic variant
@@ -162,6 +186,13 @@ def _mock_generate(project_id, vulnerability_vector, output_path, seed_image_pat
                 img = img.filter(ImageFilter.GaussianBlur(radius=4))
             elif "blur" in stressor_key:
                 img = img.filter(ImageFilter.GaussianBlur(radius=6))
+            elif "rain" in stressor_key:
+                # Add rain streaks
+                r_draw = ImageDraw.Draw(img)
+                for _ in range(100):
+                    rx = np.random.randint(0, w)
+                    ry = np.random.randint(0, h)
+                    r_draw.line([rx, ry, rx-5, ry+15], fill=(200, 220, 255, 100), width=1)
 
             fname = f"{stressor_key}_{uuid.uuid4().hex[:8]}.jpg"
             fpath = str(output_path / fname)
