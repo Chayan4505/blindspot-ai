@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../api/supabase";
 import { runAdversarialScan, setModelEndpoint, uploadSeedImages } from "../api/client";
-import { ArrowLeft, Plus, History, Shield, FolderOpen, Bell, Settings, Terminal, Mic, Send, Zap, CheckCircle, AlertTriangle, Scan, LogOut } from "lucide-react";
+import { ArrowLeft, Plus, History, Shield, FolderOpen, Bell, Settings, Terminal, Mic, Send, Zap, CheckCircle, AlertTriangle, Scan, LogOut, Sparkles } from "lucide-react";
 import TopNavBar from "../components/TopNavBar";
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { useProject } from "../hooks/useProject";
@@ -130,13 +130,22 @@ export default function ProjectDetailPage() {
                   <h3 className="font-display text-2xl font-bold text-primary mb-1 uppercase tracking-tight">Vulnerability Map</h3>
                   <p className="text-sm text-slate-500 max-w-lg font-body">8-stressor FGSM attack simulation. Red zones are critical blind spots requiring synthetic data.</p>
                 </div>
-                <button 
-                  onClick={handleScan}
-                  disabled={actionLoading || project.status === 'scanning'}
-                  className="bg-primary hover:bg-slate-900 text-white text-[10px] font-bold uppercase tracking-extrawide px-5 py-2.5 rounded-full shadow-lg shadow-primary/20 transition-all flex items-center gap-2 font-technical"
-                >
-                  <Scan size={14} /> Re-Run Scan
-                </button>
+                <div className="flex gap-2">
+                  <a 
+                    href={`http://localhost:8000/api/projects/${id}/export-report`}
+                    download
+                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[10px] font-bold uppercase tracking-extrawide px-5 py-2.5 rounded-full border border-indigo-200 transition-all flex items-center gap-2 font-technical"
+                  >
+                    <Terminal size={14} /> Export Report (.XL)
+                  </a>
+                  <button 
+                    onClick={handleScan}
+                    disabled={actionLoading || project.status === 'scanning'}
+                    className="bg-primary hover:bg-slate-900 text-white text-[10px] font-bold uppercase tracking-extrawide px-5 py-2.5 rounded-full shadow-lg shadow-primary/20 transition-all flex items-center gap-2 font-technical"
+                  >
+                    <Scan size={14} /> Re-Run Scan
+                  </button>
+                </div>
               </div>
 
               {/* Charts Grid */}
@@ -243,6 +252,41 @@ export default function ProjectDetailPage() {
 
           {/* RIGHT COLUMN */}
           <div className="col-span-12 lg:col-span-4 space-y-8">
+
+            {/* GEMINI AI INSIGHTS CARD */}
+            <div className="bg-slate-950 border border-indigo-500/30 rounded-xl p-8 text-white relative overflow-hidden group shadow-2xl">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Sparkles size={80} />
+              </div>
+              <div className="relative z-10">
+                <h3 className="font-display text-xl font-bold mb-4 flex items-center gap-2 text-cyan-400">
+                  <Sparkles size={20} /> GEMINI AI INSIGHTS
+                </h3>
+                <p className="text-[10px] text-slate-400 mb-6 leading-relaxed uppercase tracking-widest font-technical">
+                  ADVERSARIAL BRAINSTORMING: Analyzing project metadata to identify mission-critical blind spots and physics-based edge cases.
+                </p>
+                
+                <button 
+                  onClick={async () => {
+                    setActionLoading(true);
+                    try {
+                      const resp = await fetch(`http://localhost:8000/api/projects/${id}/brainstorm-scenarios`);
+                      const data = await resp.json();
+                      const scenarios = data.scenarios.map((s: any) => `• ${s.scenario.toUpperCase()}\n  ${s.reason}`).join("\n\n");
+                      alert(`GEMINI ADVERSARIAL REPORT for ${project.name}:\n\n${scenarios}`);
+                    } catch (e) {
+                      alert("Configure GOOGLE_API_KEY in .env to enable.");
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  className="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 text-[10px] font-bold uppercase tracking-widest py-3.5 rounded-lg shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {actionLoading ? <Zap size={14} className="animate-spin" /> : <Terminal size={14} />}
+                  BRAINSTORM EDGE CASES
+                </button>
+              </div>
+            </div>
 
             {/* SOURCE DATA INGESTION CARD */}
             <div className="bg-white/70 glass-panel shadow-[0_0_40px_rgba(38,58,97,0.05)] border border-indigo-500/10 rounded-xl p-8">

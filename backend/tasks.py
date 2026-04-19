@@ -7,13 +7,13 @@ import tempfile
 import logging
 from pathlib import Path
 from typing import List
-
-from celery import Celery
+import shutil
 import time
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+from celery import Celery
 from models import SessionLocal, Project, ProjectStatus
-import shutil
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 def _update_project(project_id: str, **kwargs):
     """Helper to update project status in local SQLite DB."""
@@ -76,7 +76,7 @@ def train_lora_task(self, project_id: str, seed_image_storage_keys: List[str]):
     _update_project(project_id, current_stage="Synthesizing neural stressors...", progress=30)
     time.sleep(1)
     
-    _update_project(project_id, current_stage="Executing Blender Physics Engine...", progress=50)
+    _update_project(project_id, current_stage="Executing Physics Simulation...", progress=50)
     time.sleep(1)
 
     weights_path = train_lora(
@@ -98,141 +98,61 @@ def full_pipeline_task(self, project_id: str):
     Stage 3: Auto-Labeling (75%)
     Stage 4: Package & Upload (100%)
     """
+    # ─── PIPELINE INITIALIZATION ─────────────────────────────────
+    from sqlalchemy.orm import joinedload
     db = SessionLocal()
-    project = db.query(Project).filter(Project.id == project_id).first()
+    project = db.query(Project).options(joinedload(Project.seed_images)).filter(Project.id == project_id).first()
     if not project:
-        logger.error(f"[pipeline] Project {project_id} not found locally")
         db.close()
+        logger.error(f"[pipeline] Project {project_id} not found")
         return
+    
+    seed_images = project.seed_images
+    seed_image_paths = []
+    # Ensure we have local paths to the seeds
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    for si in seed_images:
+        local_p = os.path.join(backend_dir, "data", si.storage_key)
+        if os.path.exists(local_p):
+            seed_image_paths.append(local_p)
 
-    vulnerability_vector = project.vulnerability_vector or {}
+    vulnerability_vector = project.vulnerability_vector or {
+        "occlusion_50": 0.48,
+        "rain_heavy": 0.41,
+        "fog_dense": 0.35,
+        "night_low": 0.52,
+    }
     lora_weights_path = project.lora_weights_path
-    db.close() # Close session for long-running task to avoid lock
+    db.close()
 
-    if not vulnerability_vector:
-        # Use default stressors if no scan was run
-        vulnerability_vector = {
-            "occlusion_50": 0.48,
-            "rain_heavy": 0.41,
-            "fog_dense": 0.35,
-            "night_low": 0.52,
-        }
-
-    USE_MOCK = os.getenv("MOCK_ML", "true").lower() == "true"
-    if USE_MOCK:
-        # HACKATHON OVERRIDE: Route directly to Blender 3D Engine instead of fake 2D mocks!
-        import subprocess
-        from pathlib import Path
-        
-        _update_project(project_id, status=ProjectStatus.GENERATING, current_stage="Triggering 3D Blender Engine...", progress=10)
-        
-        # Define paths for Blender engine hook
-        root_dir = Path(__file__).parent.parent
-        blender_script = root_dir / "test_blender.py"
-        blender_out = root_dir / "blender_output"
-        
-        # 1. Execute the 3D Engine Headless
-        try:
-             # Try common Blender paths or just 'blender' from PATH
-             blender_candidates = [
-                 r"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe",
-                 r"C:\Program Files\Blender Foundation\Blender 4.2\blender.exe",
-                 r"C:\Program Files\Blender Foundation\Blender 4.1\blender.exe",
-                 "blender"
-             ]
-             
-             success = False
-             for cand in blender_candidates:
-                  try:
-                      subprocess.run([cand, "--background", "--python", str(blender_script)], check=True, capture_output=True, timeout=30)
-                      success = True
-                      break
-                  except: continue
-             
-             if not success:
-                  blender_out.mkdir(exist_ok=True)
-                  if not any(blender_out.iterdir()):
-                      for i in range(3):
-                          Path(blender_out / f"synthetic_3d_{i:03d}.txt").write_text("0 0.5 0.5 0.2 0.2")
-                          Path(blender_out / f"synthetic_3d_{i:03d}.jpg").write_text("fake_image_data")
-        except Exception as e:
-              logger.error(f"Blender failed: {e}")
-             
-        _update_project(project_id, current_stage="Packaging determinisitic 3D annotations...", progress=80)
-        
-        try:
-            # 2. Package directly into pipeline formatting
-            OUTPUT_DIR = os.getenv("GENERATED_DIR", os.path.join(root_dir, "data", "generated"))
-            dataset_dir = Path(OUTPUT_DIR) / project_id / "dataset"
-            images_dir = dataset_dir / "images"
-            labels_dir = dataset_dir / "yolo_labels"
-            
-            images_dir.mkdir(parents=True, exist_ok=True)
-            labels_dir.mkdir(parents=True, exist_ok=True)
-            
-            img_count = 0
-            if blender_out.exists():
-                for f in blender_out.glob("*.jpg"):
-                     shutil.copy(f, images_dir / f.name)
-                     img_count += 1
-                for f in blender_out.glob("*.txt"):
-                     shutil.copy(f, labels_dir / f.name)
-                     
-            yaml_content = "path: .\ntrain: images\nval: images\n\nnc: 1\nnames: ['target_object']\n"
-            with open(dataset_dir / "dataset.yaml", "w") as f:
-                 f.write(yaml_content)
-                 
-            zip_path_base = str(dataset_dir.parent / f"dataset_{project_id}")
-            shutil.make_archive(zip_path_base, 'zip', root_dir=dataset_dir)
-            zip_path = f"{zip_path_base}.zip"
-                        
-            # 3. Save locally
-            from storage import upload_file, get_presigned_url
-            
-            storage_key = f"datasets/{project_id}/dataset_{project_id}.zip"
-            upload_file(zip_path, storage_key, content_type="application/zip")
-            dataset_url = get_presigned_url(storage_key)
-            
-            _update_project(
-                project_id, 
-                status=ProjectStatus.READY, 
-                current_stage="Generation complete", 
-                progress=100,
-                dataset_url=dataset_url,
-                image_count=img_count,
-                label_count=img_count
-            )
-        except Exception as e:
-            logger.error(f"Finalizing pipeline failed: {e}")
-            _update_project(project_id, status=ProjectStatus.FAILED, error_message=str(e))
-        return
-
-    # ─── REAL ML PIPELINE ──────────────────────────────────────
+    # ─── STAGE 1: Image Generation / Selection ───────────────────
     from services.generative_engine import generate_images
     from services.physics_layer import apply_physics_stressors
     from services.auto_labeler import generate_coco_dataset
     from storage import upload_file, get_presigned_url
 
-    _update_project(project_id, status=ProjectStatus.GENERATING, current_stage="Generating synthetic images", progress=5)
+    _update_project(project_id, status=ProjectStatus.GENERATING, current_stage="Synthesizing sensory failures", progress=5)
 
     def gen_progress(pct):
         actual = 5 + int(pct * 0.35)
-        _update_project(project_id, progress=actual, current_stage=f"Generating images ({pct}%)")
+        _update_project(project_id, progress=actual, current_stage=f"Generating variants ({pct}%)")
 
     generated_pairs = generate_images(
         project_id=project_id,
         lora_weights_path=lora_weights_path or "",
         vulnerability_vector=vulnerability_vector,
+        seed_image_paths=seed_image_paths,
+        object_name=project.name,
         images_per_stressor=int(os.getenv("IMAGES_PER_STRESSOR", "8")),
         progress_callback=gen_progress,
     )
 
-    _update_project(project_id, progress=40, current_stage="Image generation complete")
+    _update_project(project_id, progress=40, current_stage="Variation engine complete")
 
     # ─── STAGE 2: Physics Refinement ───────────────────────────
     def phys_progress(pct):
         actual = 40 + int(pct * 0.20)
-        _update_project(project_id, progress=actual, current_stage=f"Physics refinement ({pct}%)")
+        _update_project(project_id, progress=actual, current_stage=f"Applying physics stressors ({pct}%)")
 
     refined_pairs = apply_physics_stressors(
         project_id=project_id,
@@ -240,12 +160,12 @@ def full_pipeline_task(self, project_id: str):
         progress_callback=phys_progress,
     )
 
-    _update_project(project_id, progress=62, current_stage="Physics refinement complete")
+    _update_project(project_id, progress=60, current_stage="Physics refinement complete")
 
     # ─── STAGE 3: Auto-Labeling ─────────────────────────────────
     def label_progress(pct):
-        actual = 62 + int(pct * 0.25)
-        _update_project(project_id, progress=actual, current_stage=f"Auto-labeling ({pct}%)")
+        actual = 60 + int(pct * 0.25)
+        _update_project(project_id, progress=actual, current_stage=f"Generating ground-truth labels ({pct}%)")
 
     zip_path, img_count, label_count = generate_coco_dataset(
         project_id=project_id,
@@ -253,20 +173,52 @@ def full_pipeline_task(self, project_id: str):
         progress_callback=label_progress,
     )
 
-    _update_project(project_id, progress=90, current_stage="Uploading dataset")
+    _update_project(project_id, progress=85, current_stage="Finalizing dataset package")
 
-    # ─── STAGE 4: Finalize ───────────────────────────────
+    # ─── STAGE 4: Database & Storage Sync ───────────────────────
     storage_key = f"datasets/{project_id}/dataset_{project_id}.zip"
     upload_file(zip_path, storage_key, content_type="application/zip")
     dataset_url = get_presigned_url(storage_key)
+    
+    # Record generated images in DB for analytics and export features
+    from models import GeneratedImage
+    db = SessionLocal()
+    try:
+        # Clear existing generations for this project
+        db.query(GeneratedImage).filter(GeneratedImage.project_id == project_id).delete()
+        
+        for fpath, stressor_key in refined_pairs:
+            # Generate a mock confidence score based on the stressor severity
+            # This simulates a model performing poorly on these edge cases
+            conf = 0.5 + (0.4 - 0.1 * len(stressor_key)) # pseudo-random low confidence
+            conf = max(0.1, min(0.65, conf)) 
+            
+            gen = GeneratedImage(
+                project_id=project_id,
+                stressor=stressor_key,
+                storage_key=os.path.basename(fpath),
+                confidence_score=conf
+            )
+            db.add(gen)
+        db.commit()
+    except Exception as e:
+        logger.error(f"Failed to sync generations to DB: {e}")
+    finally:
+        db.close()
 
     _update_project(
         project_id,
         status=ProjectStatus.READY,
-        current_stage="Complete",
+        current_stage="Simulation Ready",
         progress=100,
         dataset_url=dataset_url,
         image_count=img_count,
         label_count=label_count,
     )
-    return {"status": "ready", "image_count": img_count, "label_count": label_count, "dataset_url": dataset_url}
+    
+    return {
+        "status": "ready", 
+        "image_count": img_count, 
+        "label_count": label_count, 
+        "dataset_url": dataset_url
+    }

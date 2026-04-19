@@ -224,6 +224,12 @@ export default function DatasetsPage() {
               >
                 YOLO TXT
               </button>
+              <button 
+                onClick={() => setExportFormat("XL AUDIT")}
+                className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${exportFormat === "XL AUDIT" ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-500/50' : 'text-slate-400 hover:bg-slate-100'}`}
+              >
+                XL AUDIT
+              </button>
             </div>
           </div>
 
@@ -234,12 +240,18 @@ export default function DatasetsPage() {
               <span className="font-headline text-[11px] font-bold tracking-tight">Logs</span>
             </div>
             <button 
-              onClick={handleExport}
+              onClick={() => {
+                if (exportFormat === "XL AUDIT") {
+                  window.open(`http://localhost:8000/api/projects/${id}/export-report`, "_blank");
+                } else {
+                  handleExport();
+                }
+              }}
               disabled={actionLoading || project.status !== 'ready'}
               className={`flex items-center gap-3 px-8 py-3.5 rounded-xl shadow-lg transition-all active:scale-95 ${project.status === 'ready' ? 'bg-primary text-white hover:shadow-primary/20' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
             >
               {actionLoading ? <Zap className="animate-spin" size={16} /> : <CloudDownload size={16} />}
-              <span className="font-headline font-bold text-xs uppercase tracking-[0.15em]">{project.status === 'ready' ? 'Generate & Export' : 'Node Processing...'}</span>
+              <span className="font-headline font-bold text-xs uppercase tracking-[0.15em]">{project.status === 'ready' ? (exportFormat === "XL AUDIT" ? "Export XL Report" : "Generate & Export") : 'Node Processing...'}</span>
             </button>
           </div>
         </div>

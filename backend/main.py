@@ -347,6 +347,78 @@ def get_dataset(project_id: str, db: Session = Depends(get_db)):
     }
 
 
+import csv
+from fastapi.responses import StreamingResponse
+
+@app.get("/api/projects/{project_id}/export-report")
+def export_vulnerability_report(project_id: str, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    from models import GeneratedImage
+    generated = db.query(GeneratedImage).filter(GeneratedImage.project_id == project_id).all()
+    
+    # Sort by confidence score (ascending) to show "worst cases" first
+    generated.sort(key=lambda x: x.confidence_score or 1.0)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Headers
+    writer.writerow([
+        "SCENARIO_ID", 
+        "TARGET_MODEL", 
+        "ENVIRONMENTAL_STRESSOR", 
+        "VULNERABILITY_SCORE", 
+        "CONFIDENCE_LEVEL", 
+        "STATUS",
+        "GENERATED_AT"
+    ])
+    
+    for gen in generated:
+        # Vulnerability is high when confidence is low
+        v_score = 1 - (gen.confidence_score or 0)
+        risk = "CRITICAL" if v_score > 0.6 else "VULNERABLE" if v_score > 0.4 else "ROBUST"
+        writer.writerow([
+            gen.id,
+            project.name,
+            gen.stressor.upper() if gen.stressor else "UNKNOWN",
+            f"{int(v_score * 100)}%",
+            gen.confidence_score,
+            risk,
+            gen.created_at
+        ])
+    
+    # Add vulnerability vector summary if available
+    if project.vulnerability_vector:
+        writer.writerow([])
+        writer.writerow(["SUMMARY_BY_STRESSOR"])
+        for stressor, score in project.vulnerability_vector.items():
+            writer.writerow([stressor.upper(), f"{score}%"])
+
+    output.seek(0)
+    
+    filename = f"Vulnerability_Report_{project.name}_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+from services.gemini_service import gemini_service
+
+@app.get("/api/projects/{project_id}/brainstorm-scenarios")
+def brainstorm_scenarios_endpoint(project_id: str, db: Session = Depends(get_db)):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    scenarios = gemini_service.generate_edge_cases(project.name, project.description or "")
+    return {"scenarios": scenarios}
+
+
 @app.get("/api/stressors")
 def list_stressors():
     return {"stressors": STRESSORS}

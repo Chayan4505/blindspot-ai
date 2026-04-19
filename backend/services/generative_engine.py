@@ -49,6 +49,7 @@ def generate_images(
     project_id: str,
     lora_weights_path: str,
     vulnerability_vector: Dict[str, float],
+    seed_image_paths: List[str] = [],
     object_name: str = "industrial object",
     images_per_stressor: int = 10,
     progress_callback=None,
@@ -61,7 +62,7 @@ def generate_images(
     output_path.mkdir(parents=True, exist_ok=True)
 
     if USE_MOCK:
-        return _mock_generate(project_id, vulnerability_vector, output_path, images_per_stressor, progress_callback)
+        return _mock_generate(project_id, vulnerability_vector, output_path, seed_image_paths, images_per_stressor, progress_callback)
 
     try:
         import torch
@@ -123,36 +124,38 @@ def generate_images(
         raise
 
 
-def _mock_generate(project_id, vulnerability_vector, output_path, images_per_stressor, progress_callback):
-    """Create placeholder synthetic images for mock mode."""
-    logger.info(f"[GenerativeEngine MOCK] Generating mock images for {project_id}")
+def _mock_generate(project_id, vulnerability_vector, output_path, seed_image_paths, images_per_stressor, progress_callback):
+    """Create placeholder synthetic images for mock mode using seed images as basis."""
+    logger.info(f"[GenerativeEngine MOCK] Generating mock images for {project_id} using {len(seed_image_paths)} seeds")
     generated = []
     total = len(vulnerability_vector)
-    colors = {
-        "occlusion_20": (60, 80, 140),
-        "occlusion_50": (40, 60, 120),
-        "occlusion_80": (20, 30, 80),
-        "rain_heavy":   (80, 100, 160),
-        "fog_dense":    (180, 190, 200),
-        "night_low":    (10, 15, 30),
-        "lens_flare":   (240, 220, 100),
-        "motion_blur":  (100, 100, 100),
-    }
+    
+    # Priority for seeds
+    has_seeds = len(seed_image_paths) > 0
 
     for idx, (stressor_key, confidence) in enumerate(vulnerability_vector.items()):
-        base_color = colors.get(stressor_key, (128, 128, 128))
-        count = min(images_per_stressor, 5)
+        count = min(images_per_stressor, 12)
 
         for i in range(count):
-            time.sleep(0.3)
-            img = Image.new("RGB", (512, 512), color=base_color)
+            time.sleep(0.1)
+            
+            if has_seeds:
+                seed_f = seed_image_paths[i % len(seed_image_paths)]
+                try:
+                    img = Image.open(seed_f).convert("RGB")
+                    # If seed is too big, resize to standard ML size
+                    if img.width > 1024 or img.height > 1024:
+                        img.thumbnail((1024, 1024))
+                except Exception as e:
+                    logger.warning(f"Failed to use seed {seed_f}: {e}")
+                    img = Image.new("RGB", (512, 512), color=(40, 40, 40))
+            else:
+                img = Image.new("RGB", (512, 512), color=(40, 40, 40))
+
             draw = ImageDraw.Draw(img)
-            draw.rectangle([100, 100, 400, 400], outline=(255, 255, 255), width=3)
-            draw.rectangle([180, 180, 320, 320], fill=(200, 200, 200))
-            draw.text((20, 20), f"BlindSpot.AI", fill=(255, 255, 255))
-            draw.text((20, 45), f"Stressor: {stressor_key}", fill=(220, 220, 220))
-            draw.text((20, 70), f"Conf: {confidence:.2f}", fill=(255, 100, 100))
-            draw.text((20, 95), f"Sample {i+1}/{count}", fill=(180, 180, 180))
+            # Add subtle tech overlay to indicate it's a synthetic variant
+            w, h = img.size
+            draw.text((20, h-40), f"AxiomSynth // Variant {i+1} // {stressor_key.upper()}", fill=(255, 255, 255, 128))
 
             # Add stressor effect
             if "fog" in stressor_key:

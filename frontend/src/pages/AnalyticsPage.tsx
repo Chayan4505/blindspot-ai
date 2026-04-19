@@ -203,51 +203,138 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Patch Logs Table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-12 border border-slate-200/50">
-          <div className="px-10 py-8 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="text-lg font-bold font-headline uppercase tracking-widest text-primary">Recent Robustness Patches</h3>
-            <button className="text-slate-400 hover:text-primary transition-colors">
-              <ChevronRight size={20} />
-            </button>
+        {/* Edge Case Dataset & Solution Register */}
+        <section className="mb-24">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="h-[2px] w-12 bg-emerald-500/50"></div>
+            <h2 className="text-xl font-bold font-headline uppercase tracking-[0.3em] text-[#00605a]">Edge Case Dataset & Solution Register</h2>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-50/50">
-                  <th className="px-10 py-5 text-[10px] font-bold font-headline uppercase tracking-widest text-slate-400">Patch ID</th>
-                  <th className="px-10 py-5 text-[10px] font-bold font-headline uppercase tracking-widest text-slate-400">Classification</th>
-                  <th className="px-10 py-5 text-[10px] font-bold font-headline uppercase tracking-widest text-slate-400">Status</th>
-                  <th className="px-10 py-5 text-[10px] font-bold font-headline uppercase tracking-widest text-slate-400">Accuracy Impact</th>
-                  <th className="px-10 py-5 text-[10px] font-bold font-headline uppercase tracking-widest text-slate-400 text-right">Preview</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {[
-                  { id: '402', type: 'Sensor Occlusion - Mud', impact: '+4.2%' },
-                  { id: '398', type: 'Reflective Glare - Dusk', impact: '+2.1%' },
-                  { id: '395', type: 'Geometric Ambiguity - Fog', impact: 'TBD' }
-                ].map((patch) => (
-                  <tr key={patch.id} className="hover:bg-slate-50 transition-colors group cursor-default">
-                    <td className="px-10 py-6 text-sm font-bold text-primary font-mono">#{patch.id}</td>
-                    <td className="px-10 py-6">
-                      <p className="text-sm font-medium text-slate-700">{patch.type}</p>
-                    </td>
-                    <td className="px-10 py-6">
-                      <span className="inline-flex items-center px-3 py-1 rounded bg-emerald-50 text-emerald-600 text-[10px] font-bold font-headline uppercase tracking-widest border border-emerald-100">
-                        {patch.impact === 'TBD' ? 'Evaluating' : 'Deployed'}
-                      </span>
-                    </td>
-                    <td className="px-10 py-6 text-sm font-mono text-emerald-600 font-bold">{patch.impact}</td>
-                    <td className="px-10 py-6 text-right relative">
-                      <ImageIcon size={18} className="text-slate-300 ml-auto group-hover:text-primary transition-colors" />
-                    </td>
+          
+          <div className="bg-[#0b0e11] rounded-2xl border border-emerald-500/10 shadow-[0_40px_100px_rgba(0,0,0,0.4)] overflow-hidden">
+            <div className="p-6 bg-gradient-to-r from-emerald-950/20 to-transparent border-b border-emerald-500/10">
+              <p className="text-[10px] font-technical text-emerald-500/60 uppercase tracking-widest leading-relaxed">
+                Comprehensive edge cases targeting AI model blind spots — each row is a unique failure scenario with severity classification, stressor configuration, and recommended solution.
+              </p>
+            </div>
+            
+            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-emerald-500/20 scrollbar-track-transparent">
+              <table className="w-full text-left border-collapse min-w-[1400px]">
+                <thead>
+                  <tr className="bg-[#12161a] border-b border-emerald-500/10">
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400">ID</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400">Edge Case Name</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400 text-center">Category</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400">Stressor Key</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400 text-center">Severity</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400">Failure Mode</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400 text-center">Drop (%)</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400 w-64">Real-World Scenario</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400 text-center">Blender</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400">Solution Strategy</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400">Impl. Hint</th>
+                    <th className="px-6 py-4 text-[10px] font-bold font-headline uppercase tracking-tighter text-emerald-400 text-center">Priority</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-emerald-500/5">
+                  {[
+                    { 
+                      id: 'EC-001', name: 'Partial Object Occlusion (20%)', cat: 'Occlusion', key: 'occlusion_20', sev: 0.2, fail: 'Partial Feature Loss', drop: '15%', scenario: 'Pedestrian partially behind lamppost on urban street; drone behind a thin branch', blender: 'No', solution: 'Augment training with partially masked objects using patch-based occlusion at 10-30% coverage', hint: 'In physics_layer.py: reduce occluder opacity to 40%, add gradient edge blend using ImageFilter.SMOOTH', priority: 'LOW' 
+                    },
+                    { 
+                      id: 'EC-002', name: 'Half-Object Occlusion (50%)', cat: 'Occlusion', key: 'occlusion_50', sev: 0.5, fail: 'Critical Feature Loss', drop: '40%', scenario: 'Vehicle half-hidden behind building corner; industrial sensor behind pipes at 50% coverage', blender: 'No', solution: 'Train on pair-wise occlusion masks, use context-aware inpainting to reconstruct hidden regions for contrastive loss', hint: 'Modify physics_occlusion() to place rectangular occluders only on salient regions. Use saliency map from torchvision', priority: 'HIGH' 
+                    },
+                    { 
+                      id: 'EC-003', name: 'Severe Occlusion (80%)', cat: 'Occlusion', key: 'occlusion_80', sev: 0.8, fail: 'Object Invisibility', drop: '75%', scenario: 'Car nearly fully hidden in underground parking; robot arm behind dense machinery', blender: 'Yes', solution: 'Generate images where only corner/edge features are visible. Use LoRA fine-tune to teach model to detect partial signatures', hint: 'In Blender: place large opaque mesh in front of target. Use Cycles with physically-based occlusion geometry', priority: 'CRITICAL' 
+                    },
+                    { 
+                      id: 'EC-004', name: 'Moving Occluder (Intermittent)', cat: 'Occlusion', key: 'occlusion_50', sev: 0.55, fail: 'Temporal Inconsistency', drop: '45%', scenario: 'Bus temporarily blocking pedestrian while both are moving; tree branches swaying over sensor target', blender: 'Yes', solution: 'Generate sequence of 3-5 frames with occluder at increasing coverage levels. Train on temporal context window', hint: 'Create animated Blender scene: animate occluder mesh along a path. Export 5 frames at 0%, 25%, 50%, 75%, 100% coverage', priority: 'HIGH' 
+                    },
+                    { 
+                      id: 'EC-005', name: 'Light Rain (Drizzle)', cat: 'Rain', key: 'rain_light', sev: 0.3, fail: 'Texture Blur', drop: '12%', scenario: 'Fog of war: sensor barely wet; early morning drizzle on car camera; road slightly wet with minimal puddles', blender: 'No', solution: 'Add low-intensity rain stressor (num_drops=800, alpha=0.2) as new stressor_key=\'rain_light\' in STRESSORS dict', hint: 'In physics_layer.py: copy physics_rain(), set num_drops=800, drop_len_max=12, alpha range=[0.1, 0.3], skip GaussianBlur', priority: 'LOW' 
+                    },
+                    { 
+                      id: 'EC-006', name: 'Heavy Rain + Wind', cat: 'Rain', key: 'rain_heavy', sev: 0.75, fail: 'Streak Artifacts + Haze', drop: '55%', scenario: 'Tropical downpour on autonomous vehicle; stormy conditions reducing visibility to 50m; drone flying through heavy monsoon', blender: 'Yes', solution: 'Current rain stressor lacks wind angle variation. Increase drop angle variance to +/-45°. Add horizontal streaks for rain haze', hint: 'In _physics_rain(): change drop_angle range to (-0.8, 0.8). Add second pass of horizontal streaks at intensity=0.4', priority: 'HIGH' 
+                    },
+                    { 
+                      id: 'EC-007', name: 'Rain on Lens (Water Droplets)', cat: 'Rain', key: 'rain_lens', sev: 0.8, fail: 'Refractive Distortion', drop: '65%', scenario: 'Camera dome covered in large droplets causing micro-lensing; front camera rain drops creating bright halos', blender: 'Yes', solution: 'New stressor: apply circular refraction patches simulating water droplets with magnification effect on small regions', hint: 'In Blender: use a fluid simulation with high surface tension to create spherical droplets on a glass plane', priority: 'HIGH' 
+                    },
+                    { 
+                      id: 'EC-008', name: 'Rain + Night Combined', cat: 'Rain', key: 'rain_heavy', sev: 0.85, fail: 'Compound Degradation', drop: '80%', scenario: 'Nighttime highway rain causing maximum sensor confusion; wet road reflections + darkness + rain streaks', blender: 'Yes', solution: 'Compound stressor: chain physics_night() and physics_rain(). This is currently not implemented — each stressor is applied independently', hint: 'Create a new task in tasks.py: chain_physics_night_then_rain(). Ensure dark noise is applied before streak overlays', priority: 'CRITICAL' 
+                    },
+                    { 
+                      id: 'EC-009', name: 'Ground-Level Fog (Tule Fog)', cat: 'Fog', key: 'fog_dense', sev: 0.7, fail: 'Low-Region Masking', drop: '60%', scenario: 'California ground fog masking vehicle wheels and road markings; morning valley fog hiding bottom 30% of scene', blender: 'No', solution: 'Current fog applies uniform density. Split fog into a ground gradient (bottom 60% heavily fogged, top 40% clear sky)', hint: 'Modify physics_fog(): change fog_density = np.concatenate([np.linspace(0.9, 0.2, h*0.6), np.linspace(0.2, 0.05, h*0.4)])', priority: 'MEDIUM' 
+                    }
+                  ].map((ec) => (
+                    <tr key={ec.id} className="hover:bg-emerald-500/[0.02] transition-colors border-b border-emerald-500/5 group">
+                      <td className="px-6 py-5 text-xs font-technical text-emerald-500 font-bold">{ec.id}</td>
+                      <td className="px-6 py-5">
+                        <p className="text-sm font-medium text-slate-300 group-hover:text-emerald-400 transition-colors uppercase tracking-tight">{ec.name}</p>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase tracking-widest ${
+                          ec.cat === 'Occlusion' ? 'bg-indigo-500/10 text-indigo-400' : 
+                          ec.cat === 'Rain' ? 'bg-blue-500/10 text-blue-400' : 'bg-emerald-500/10 text-emerald-400'
+                        }`}>
+                          {ec.cat}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-xs font-mono text-slate-500">{ec.key}</td>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3 justify-center">
+                          <span className={`text-xs font-bold ${ec.sev > 0.7 ? 'text-rose-500' : ec.sev > 0.4 ? 'text-amber-500' : 'text-emerald-500'}`}>{ec.sev}</span>
+                          <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full transition-all duration-1000 ${ec.sev > 0.7 ? 'bg-rose-500 shadow-[0_0_8px_#f43f5e]' : ec.sev > 0.4 ? 'bg-amber-500 shadow-[0_0_8px_#f59e0b]' : 'bg-emerald-500 shadow-[0_0_8px_#10b981]'}`}
+                              style={{ width: `${ec.sev * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-xs font-technical text-slate-400 uppercase tracking-tighter">{ec.fail}</td>
+                      <td className="px-6 py-5 text-center text-xs font-bold text-rose-500/80">{ec.drop}</td>
+                      <td className="px-6 py-5">
+                        <p className="text-[10px] text-slate-500 leading-relaxed italic">{ec.scenario}</p>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className={`text-[10px] font-bold ${ec.blender === 'Yes' ? 'text-emerald-500' : 'text-slate-700'}`}>{ec.blender}</span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <p className="text-[11px] text-slate-400 leading-snug">{ec.solution}</p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <p className="text-[9px] font-mono text-emerald-500/70 leading-relaxed max-w-xs">{ec.hint}</p>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border ${
+                          ec.priority === 'CRITICAL' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' : 
+                          ec.priority === 'HIGH' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
+                          ec.priority === 'MEDIUM' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                          'bg-slate-500/10 text-slate-400 border-slate-500/10'
+                        }`}>
+                          {ec.priority}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="p-4 bg-[#0d1115] border-t border-emerald-500/10 flex justify-between items-center">
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-rose-500"></div>
+                  <span className="text-[9px] font-technical text-slate-500 uppercase tracking-widest">Critical Blind Spot</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <span className="text-[9px] font-technical text-slate-500 uppercase tracking-widest">Active Resolution</span>
+                </div>
+              </div>
+              <p className="text-[9px] font-technical text-emerald-500/40 uppercase tracking-[0.2em]">Axiom Database Ver 4.2.1-X</p>
+            </div>
           </div>
-        </div>
+        </section>
       </main>
 
       {/* Control Console */}
