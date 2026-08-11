@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProject } from "../hooks/useProject";
-import { triggerGeneration } from "../api/client";
+import { triggerGeneration, BASE_URL } from "../api/client";
 import { Plus, History, Shield, Terminal, Zap, Activity, Wind, Radio } from "lucide-react";
 import TopNavBar from "../components/TopNavBar";
 
@@ -30,7 +30,7 @@ export default function SimulationPage() {
     setActionLoading(true);
     try {
       // Reset status in Supabase
-      await fetch(`http://localhost:8000/api/projects/${id}/status`, {
+      await fetch(`${BASE_URL}/api/projects/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'created', progress: 0, current_stage: 'Dashboard Ready' })
@@ -322,47 +322,48 @@ export default function SimulationPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                { type: 'OCCLUSION_80', frame: '00253', intensity: '19%', img: 'https://images.unsplash.com/photo-1541675154750-0444c7d51e8e?auto=format&fit=crop&q=80&w=400' },
-                { type: 'FOG_DENSE', frame: '00312', intensity: '35%', img: 'https://images.unsplash.com/photo-1443397646383-162720487ff0?auto=format&fit=crop&q=80&w=400' },
-                { type: 'RAIN_HEAVY', frame: '00441', intensity: '41%', img: 'https://images.unsplash.com/photo-1512511708753-3150cd2ec8ee?auto=format&fit=crop&q=80&w=400' },
-                { type: 'OCCLUSION_50', frame: '00567', intensity: '48%', img: 'https://images.unsplash.com/photo-1505852939462-22872368c741?auto=format&fit=crop&q=80&w=400' },
-                { type: 'MOTION_BLUR', frame: '00612', intensity: '62%', img: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=400' },
-                { type: 'LENS_FLARE', frame: '00782', intensity: '12%', img: 'https://images.unsplash.com/photo-1521747116042-5a810fda9664?auto=format&fit=crop&q=80&w=400' },
-                { type: 'DUSK_LOW_LIGHT', frame: '00891', intensity: '88%', img: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&q=80&w=400' },
-                { type: 'WHITE_NOISE', frame: '01024', intensity: '05%', img: 'https://images.unsplash.com/photo-1614850523296-e8c041df43a4?auto=format&fit=crop&q=80&w=400' }
-              ].map((s, i) => (
-                <div key={i} className="group relative rounded-2xl overflow-hidden border border-slate-900 shadow-2xl bg-slate-950 transition-all hover:scale-[1.02] hover:-translate-y-1">
-                   <div className="absolute inset-0 grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-70 transition-all duration-700">
-                      <img src={s.img} alt={s.type} className="w-full h-full object-cover" />
-                   </div>
-                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
-                   
-                   <div className="relative p-6 h-48 flex flex-col justify-between z-10">
-                      <div className="flex justify-between items-start">
-                         <div>
-                            <p className="text-[7px] text-indigo-400 font-technical uppercase tracking-widest mb-0.5">Blender_Physics_V2.1</p>
-                            <h4 className="text-sm font-technical font-bold text-white tracking-widest uppercase">{s.type}</h4>
-                         </div>
-                         <p className="text-[8px] font-technical text-slate-500 uppercase">Frame: {s.frame}</p>
-                      </div>
-                      <div className="flex justify-between items-end">
-                         <p className="text-[8px] font-technical text-slate-500 uppercase tracking-widest">Physics Layer</p>
-                         <p className="text-xl font-headline font-bold text-tertiary shadow-[0_0_10px_rgba(242,194,59,0.3)]">{s.intensity}</p>
-                      </div>
-                   </div>
-                   
-                   <div className="absolute inset-0 bg-indigo-900/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center pointer-events-none">
-                      <div className="text-center p-4">
-                         <Activity size={24} className="text-white mx-auto mb-2 animate-pulse" />
-                         <p className="text-[10px] text-white font-technical font-bold uppercase tracking-widest italic">Interrogating Node...</p>
-                         <div className="mt-3 flex gap-1 justify-center">
-                            {[1,2,3,4].map(x => <div key={x} className="w-1 h-3 bg-white/30 rounded-full"></div>)}
-                         </div>
-                      </div>
-                   </div>
-                </div>
-              ))}
+              {(project.generated_images && project.generated_images.length > 0) ? (
+                project.generated_images.map((img, i) => (
+                  <div key={img.id} className="group relative rounded-2xl overflow-hidden border border-slate-900 shadow-2xl bg-slate-950 transition-all hover:scale-[1.02] hover:-translate-y-1">
+                    <div className="absolute inset-0 grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-70 transition-all duration-700">
+                        <img 
+                          src={img.url || `${BASE_URL}/media/${img.storage_key}`} 
+                          alt={img.stressor} 
+                          className="w-full h-full object-cover" 
+                        />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+                    
+                    <div className="relative p-6 h-48 flex flex-col justify-between z-10">
+                        <div className="flex justify-between items-start">
+                          <div>
+                              <p className="text-[7px] text-indigo-400 font-technical uppercase tracking-widest mb-0.5">AxiomSynth_Output_V1</p>
+                              <h4 className="text-sm font-technical font-bold text-white tracking-widest uppercase">{img.stressor?.replace('_', ' ') || 'VARIANT'}</h4>
+                          </div>
+                          <p className="text-[8px] font-technical text-slate-500 uppercase">#{i.toString().padStart(3, '0')}</p>
+                        </div>
+                        <div className="flex justify-between items-end">
+                          <p className="text-[8px] font-technical text-slate-500 uppercase tracking-widest">Confidence</p>
+                          <p className={`text-xl font-headline font-bold drop-shadow-[0_0_10px_rgba(242,194,59,0.3)] ${(img.confidence_score || 0) < 0.4 ? 'text-red-500' : 'text-tertiary'}`}>
+                            {Math.round((img.confidence_score || 0) * 100)}%
+                          </p>
+                        </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                // Fallback drone placeholders if no images yet
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="group relative rounded-2xl overflow-hidden border border-slate-900 shadow-2xl bg-slate-950 transition-all opacity-40">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Wind className="text-slate-800" size={48} />
+                    </div>
+                    <div className="relative p-6 h-48 flex flex-col justify-end z-10">
+                      <p className="text-[8px] font-technical text-slate-500 uppercase tracking-extrawide">Waiting for loop initialization...</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className="mt-16 grid grid-cols-12 gap-8">

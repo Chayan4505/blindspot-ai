@@ -19,7 +19,11 @@ logger = logging.getLogger(__name__)
 
 USE_BLENDER = os.getenv("USE_BLENDER", "false").lower() == "true"
 BLENDER_PATH = os.getenv("BLENDER_PATH", "/usr/bin/blender")
-OUTPUT_DIR = os.getenv("GENERATED_DIR", "/app/generated")
+# In production (Render), GENERATED_DIR should be /tmp/generated (ephemeral scratch space).
+# Files are uploaded to Supabase Storage immediately after generation.
+# In local dev it defaults to backend/data/generated so the /media static server can find them.
+_DEFAULT_GENERATED_DIR = str(Path(__file__).resolve().parent.parent / "data" / "generated")
+OUTPUT_DIR = os.getenv("GENERATED_DIR", _DEFAULT_GENERATED_DIR)
 
 
 def apply_physics_stressors(

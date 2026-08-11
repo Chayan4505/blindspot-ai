@@ -1,20 +1,13 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Shield, Lock, Eye, ArrowLeft, UserPlus } from 'lucide-react';
-import { supabase } from '../api/supabase';
 
 const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/projects'
-      }
-    });
-
-    if (error) console.error('Sign Up Error:', error.message);
+    // Mock login for local mode
+    navigate('/projects');
   };
 
   return (

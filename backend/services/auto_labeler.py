@@ -215,7 +215,7 @@ def _package_dataset(project_id: str, output_path: Path, coco: Dict) -> str:
 
 def _generate_yolo_labels(output_path: Path, coco: Dict):
     """Convert COCO annotations to YOLO .txt format."""
-    yolo_path = output_path / "yolo_labels"
+    yolo_path = output_path / "labels"
     yolo_path.mkdir(exist_ok=True)
 
     img_map = {img["id"]: img for img in coco["images"]}

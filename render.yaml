@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: blindspot-api
+    runtime: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: MOCK_ML
+        value: "true"
+      - key: IMAGES_PER_STRESSOR
+        value: "8"
+      - key: USE_BLENDER
+        value: "false"
+      - key: GENERATED_DIR
+        value: "/tmp/generated"
+      # ── Set these in the Render dashboard ──────────────────────────────────
+      - key: DATABASE_URL
+        sync: false   # set manually: Supabase Postgres connection string
+      - key: SUPABASE_URL
+        sync: false   # https://<ref>.supabase.co
+      - key: SUPABASE_SERVICE_KEY
+        sync: false   # service_role key (NOT anon key)
+      - key: SUPABASE_STORAGE_BUCKET
+        value: "project-seeds"
+      - key: API_BASE_URL
+        sync: false   # https://blindspot-api.onrender.com (your Render URL)
+      - key: GOOGLE_API_KEY
+        sync: false   # Gemini API key
+      - key: GEMINI_MODEL
+        value: "gemini-1.5-flash"

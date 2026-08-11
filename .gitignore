@@ -32,6 +32,14 @@ backend/generated/
 postgres_data/
 minio_data/
 
+# Local Storage & DB
+blindspot.db
+backend/blindspot.db
+backend/data/
+data/generated/
+blender_output/
+*.zip
+
 # IDE
 .idea/
 .vscode/
