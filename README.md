@@ -40,7 +40,7 @@ BlindSpot.AI solves the Edge-Case Crisis in modern AI. It generates photorealist
 | `DATABASE_URL` | Supabase Postgres URI (Session mode, port 5432) |
 | `SUPABASE_URL` | `https://<ref>.supabase.co` |
 | `SUPABASE_SERVICE_KEY` | Your `service_role` key |
-| `SUPABASE_STORAGE_BUCKET` | `blindspot` |
+| `SUPABASE_STORAGE_BUCKET` | `project-seeds` |
 | `API_BASE_URL` | `https://<your-app>.onrender.com` |
 | `GOOGLE_API_KEY` | Your Gemini API key |
 

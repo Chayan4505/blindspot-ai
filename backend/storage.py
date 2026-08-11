@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")          # https://<ref>.supabase.co
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
-STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "blindspot")
+STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "project-seeds")
 BASE_API_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 # Use Supabase when the URL is provided

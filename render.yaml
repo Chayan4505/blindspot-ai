@@ -27,7 +27,7 @@ services:
       - key: SUPABASE_SERVICE_KEY
         sync: false   # service_role key (NOT anon key)
       - key: SUPABASE_STORAGE_BUCKET
-        value: "blindspot"
+        value: "project-seeds"
       - key: API_BASE_URL
         sync: false   # https://blindspot-api.onrender.com (your Render URL)
       - key: GOOGLE_API_KEY
