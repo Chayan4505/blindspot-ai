@@ -26,7 +26,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
         Pillow==10.3.0 \
         numpy==1.26.4 \
         opencv-python-headless==4.9.0.80 \
-        scipy==1.13.0
+        scipy==1.13.0 \
+        supabase==2.5.3 \
+        google-generativeai==0.5.2
 
 RUN pip install --no-cache-dir \
     torch==2.3.0 torchvision==0.18.0 \
@@ -42,4 +44,4 @@ RUN mkdir -p /app/weights /app/generated /tmp/seeds
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
