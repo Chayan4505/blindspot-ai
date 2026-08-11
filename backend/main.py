@@ -7,6 +7,7 @@ import io
 import uuid
 import logging
 import shutil
+import tempfile
 from typing import Optional, List, Any
 from datetime import datetime
 from pathlib import Path
@@ -16,9 +17,9 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, Bac
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
-from storage import upload_bytes, get_presigned_url, upload_file
+from storage import upload_bytes, get_presigned_url, get_public_url, upload_file
 from tasks import train_lora_task, full_pipeline_task
 from services.adversarial_agent import run_vulnerability_scan, STRESSORS
 import httpx
@@ -57,7 +58,10 @@ app.add_middleware(
 )
 
 os.makedirs(os.path.join(os.path.dirname(__file__), "data"), exist_ok=True)
-app.mount("/media", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "data")), name="media")
+# Only mount local media server in dev (when Supabase storage is not configured)
+_local_data_dir = os.path.join(os.path.dirname(__file__), "data")
+if not os.getenv("SUPABASE_URL"):
+    app.mount("/media", StaticFiles(directory=_local_data_dir), name="media")
 
 
 # ─── Pydantic Schemas ──────────────────────────────────────────────────────────
@@ -84,7 +88,20 @@ class GeneratedImageResponse(BaseModel):
     id: str
     stressor: Optional[str]
     storage_key: str
+    url: Optional[str] = None
     confidence_score: Optional[float]
+
+    @classmethod
+    def from_orm_with_url(cls, obj):
+        from storage import get_public_url
+        return cls(
+            id=obj.id,
+            stressor=obj.stressor,
+            storage_key=obj.storage_key,
+            url=get_public_url(obj.storage_key),
+            confidence_score=obj.confidence_score,
+        )
+
     class Config:
         from_attributes = True
 
@@ -104,6 +121,14 @@ class ProjectResponse(BaseModel):
     generated_images: List[GeneratedImageResponse] = []
     created_at: Optional[Any]
     updated_at: Optional[Any]
+
+    @model_validator(mode="after")
+    def populate_generated_urls(self):
+        from storage import get_public_url
+        for img in self.generated_images:
+            if not img.url:
+                img.url = get_public_url(img.storage_key)
+        return self
 
     class Config:
         from_attributes = True
@@ -175,7 +200,7 @@ async def upload_seed_images_endpoint(
         storage_key = f"project-seeds/{project_id}/{uuid.uuid4().hex}{ext}"
         
         upload_bytes(data, storage_key, content_type=file.content_type)
-        url = f"http://localhost:8000/media/{storage_key}"
+        url = get_public_url(storage_key)
 
         seed = SeedImage(
             project_id=project_id,
@@ -266,19 +291,18 @@ def run_adversarial_scan_endpoint(project_id: str, background_tasks: BackgroundT
     project.current_stage = "Running adversarial scan..."
     db.commit()
 
-    # Prepare seeds
+    # Prepare seeds — download from storage (works locally and on Render)
     seed_paths = []
-    tmp_dir = Path("data") / f"scan_{project_id}"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
+    tmp_dir = Path(tempfile.mkdtemp(prefix=f"scan_{project_id}_"))
 
     for i, si in enumerate(project.seed_images[:5]):
         local = str(tmp_dir / f"seed_{i}.jpg")
         try:
-            # Files are local
-            shutil.copy(os.path.join(os.path.dirname(__file__), "data", si.storage_key), local)
+            from storage import download_file as _dl
+            _dl(si.storage_key, local)
             seed_paths.append(local)
         except Exception as e:
-            logger.warning(f"Could not copy seed image: {e}")
+            logger.warning(f"Could not fetch seed image: {e}")
 
     background_tasks.add_task(run_scan_bg, project_id, project.model_endpoint or "", seed_paths)
 

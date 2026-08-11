@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useProject } from "../hooks/useProject";
-import { getDataset } from "../api/client";
+import { getDataset, BASE_URL } from "../api/client";
 import { Plus, History, Shield, Bell, Settings, Terminal, CloudDownload, Layers, Sparkles, Fingerprint, FolderOpen, Zap, CheckCircle } from "lucide-react";
 import TopNavBar from "../components/TopNavBar";
 
@@ -242,7 +242,7 @@ export default function DatasetsPage() {
             <button 
               onClick={() => {
                 if (exportFormat === "XL AUDIT") {
-                  window.open(`http://localhost:8000/api/projects/${id}/export-report`, "_blank");
+                  window.open(`${BASE_URL}/api/projects/${id}/export-report`, "_blank");
                 } else {
                   handleExport();
                 }

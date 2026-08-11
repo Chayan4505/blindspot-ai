@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+export const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -25,7 +25,8 @@ export interface Project {
   generated_images: { 
     id: string; 
     stressor: string; 
-    storage_key: string; 
+    storage_key: string;
+    url?: string;
     confidence_score: number 
   }[];
   created_at?: string;

@@ -16,7 +16,9 @@ from PIL import Image, ImageFilter, ImageDraw, ImageFont
 logger = logging.getLogger(__name__)
 
 USE_MOCK = os.getenv("MOCK_ML", "true").lower() == "true"
-# Default to <backend>/data/generated so files land under the static media server
+# In production (Render), GENERATED_DIR should be /tmp/generated (ephemeral scratch space).
+# Files are uploaded to Supabase Storage immediately after generation.
+# In local dev it defaults to backend/data/generated so the /media static server can find them.
 _DEFAULT_GENERATED_DIR = str(Path(__file__).resolve().parent.parent / "data" / "generated")
 OUTPUT_DIR = os.getenv("GENERATED_DIR", _DEFAULT_GENERATED_DIR)
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useProject } from "../hooks/useProject";
-import { triggerGeneration } from "../api/client";
+import { triggerGeneration, BASE_URL } from "../api/client";
 import { Plus, History, Shield, Terminal, Zap, Activity, Wind, Radio } from "lucide-react";
 import TopNavBar from "../components/TopNavBar";
 
@@ -30,7 +30,7 @@ export default function SimulationPage() {
     setActionLoading(true);
     try {
       // Reset status in Supabase
-      await fetch(`http://localhost:8000/api/projects/${id}/status`, {
+      await fetch(`${BASE_URL}/api/projects/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'created', progress: 0, current_stage: 'Dashboard Ready' })
@@ -327,7 +327,7 @@ export default function SimulationPage() {
                   <div key={img.id} className="group relative rounded-2xl overflow-hidden border border-slate-900 shadow-2xl bg-slate-950 transition-all hover:scale-[1.02] hover:-translate-y-1">
                     <div className="absolute inset-0 grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-70 transition-all duration-700">
                         <img 
-                          src={`http://localhost:8000/media/${img.storage_key}`} 
+                          src={img.url || `${BASE_URL}/media/${img.storage_key}`} 
                           alt={img.stressor} 
                           className="w-full h-full object-cover" 
                         />

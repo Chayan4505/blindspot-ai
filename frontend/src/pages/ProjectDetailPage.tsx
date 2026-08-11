@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../api/supabase";
-import { runAdversarialScan, setModelEndpoint, uploadSeedImages } from "../api/client";
+import { runAdversarialScan, setModelEndpoint, uploadSeedImages, BASE_URL } from "../api/client";
 import { ArrowLeft, Plus, History, Shield, FolderOpen, Bell, Settings, Terminal, Mic, Send, Zap, CheckCircle, AlertTriangle, Scan, LogOut, Sparkles } from "lucide-react";
 import TopNavBar from "../components/TopNavBar";
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
@@ -132,7 +132,7 @@ export default function ProjectDetailPage() {
                 </div>
                 <div className="flex gap-2">
                   <a 
-                    href={`http://localhost:8000/api/projects/${id}/export-report`}
+                    href={`${BASE_URL}/api/projects/${id}/export-report`}
                     download
                     className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[10px] font-bold uppercase tracking-extrawide px-5 py-2.5 rounded-full border border-indigo-200 transition-all flex items-center gap-2 font-technical"
                   >
@@ -270,7 +270,7 @@ export default function ProjectDetailPage() {
                   onClick={async () => {
                     setActionLoading(true);
                     try {
-                      const resp = await fetch(`http://localhost:8000/api/projects/${id}/brainstorm-scenarios`);
+                      const resp = await fetch(`${BASE_URL}/api/projects/${id}/brainstorm-scenarios`);
                       const data = await resp.json();
                       const scenarios = data.scenarios.map((s: any) => `• ${s.scenario.toUpperCase()}\n  ${s.reason}`).join("\n\n");
                       alert(`GEMINI ADVERSARIAL REPORT for ${project.name}:\n\n${scenarios}`);

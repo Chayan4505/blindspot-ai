@@ -109,12 +109,16 @@ def full_pipeline_task(self, project_id: str):
     
     seed_images = project.seed_images
     seed_image_paths = []
-    # Ensure we have local paths to the seeds
-    backend_dir = os.path.dirname(os.path.abspath(__file__))
-    for si in seed_images:
-        local_p = os.path.join(backend_dir, "data", si.storage_key)
-        if os.path.exists(local_p):
+    # Download seeds to a temp directory (works both locally and on Render)
+    import tempfile
+    seeds_tmp = tempfile.mkdtemp(prefix="blindspot_seeds_")
+    for i, si in enumerate(seed_images):
+        local_p = os.path.join(seeds_tmp, f"seed_{i}{Path(si.storage_key).suffix or '.jpg'}")
+        try:
+            download_file(si.storage_key, local_p)
             seed_image_paths.append(local_p)
+        except Exception as e:
+            logger.warning(f"[pipeline] Could not fetch seed {si.storage_key}: {e}")
 
     vulnerability_vector = project.vulnerability_vector or {
         "occlusion_50": 0.48,
@@ -129,7 +133,7 @@ def full_pipeline_task(self, project_id: str):
     from services.generative_engine import generate_images
     from services.physics_layer import apply_physics_stressors
     from services.auto_labeler import generate_coco_dataset
-    from storage import upload_file, get_presigned_url
+    from storage import upload_file, get_presigned_url, download_file
 
     _update_project(project_id, status=ProjectStatus.GENERATING, current_stage="Synthesizing sensory failures", progress=5)
 
@@ -173,49 +177,53 @@ def full_pipeline_task(self, project_id: str):
         progress_callback=label_progress,
     )
 
-    _update_project(project_id, progress=85, current_stage="Finalizing dataset package")
-
     # ─── STAGE 4: Database & Storage Sync ───────────────────────
+    _update_project(project_id, progress=85, current_stage="Uploading to cloud storage")
+
+    # Upload dataset zip
     storage_key = f"datasets/{project_id}/dataset_{project_id}.zip"
     upload_file(zip_path, storage_key, content_type="application/zip")
     dataset_url = get_presigned_url(storage_key)
-    
-    # Record generated images in DB for analytics and export features
+
+    # Record generated images in DB — upload each file to storage first
     from models import GeneratedImage
     db = SessionLocal()
     try:
-        # Clear existing generations for this project
         db.query(GeneratedImage).filter(GeneratedImage.project_id == project_id).delete()
 
-        # The data directory is the root served by /media
-        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-
         for fpath, stressor_key in refined_pairs:
-            # Derive storage_key as the path relative to data_dir so it
-            # matches what the /media static file server can resolve.
-            abs_fpath = os.path.abspath(fpath)
-            try:
-                rel_path = os.path.relpath(abs_fpath, data_dir).replace("\\", "/")
-            except ValueError:
-                # If on different drives (Windows edge-case), fall back to basename
-                rel_path = f"generated/{project_id}/raw/{os.path.basename(fpath)}"
+            fname = os.path.basename(fpath)
+            img_storage_key = f"generated/{project_id}/{fname}"
 
-            # Generate a mock confidence score based on the stressor severity
-            conf = 0.5 + (0.4 - 0.1 * len(stressor_key))  # pseudo-random low confidence
+            # Upload to Supabase Storage (no-op locally — storage.py copies to data/)
+            try:
+                upload_file(fpath, img_storage_key, content_type="image/jpeg")
+            except Exception as e:
+                logger.warning(f"[pipeline] Failed to upload image {fname}: {e}")
+
+            conf = 0.5 + (0.4 - 0.1 * len(stressor_key))
             conf = max(0.1, min(0.65, conf))
 
             gen = GeneratedImage(
                 project_id=project_id,
                 stressor=stressor_key,
-                storage_key=rel_path,
-                confidence_score=conf
+                storage_key=img_storage_key,
+                confidence_score=conf,
             )
             db.add(gen)
+
         db.commit()
     except Exception as e:
         logger.error(f"Failed to sync generations to DB: {e}")
     finally:
         db.close()
+
+    # Clean up temp files on Render (ephemeral disk)
+    try:
+        import shutil as _shutil
+        _shutil.rmtree(seeds_tmp, ignore_errors=True)
+    except Exception:
+        pass
 
     _update_project(
         project_id,
