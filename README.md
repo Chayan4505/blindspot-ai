@@ -90,4 +90,3 @@ See `.env.example` for full list. Key variables:
 
 ---
 
-Camp Nou Coders · HACKTONIX 2026 · NSEC Kolkata
