@@ -12,9 +12,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./blindspot.db")
 
 # Supabase / Postgres connection pooling — use NullPool on serverless to avoid
 # "too many connections" errors on Render's free tier.
-if DATABASE_URL.startswith("postgresql") or DATABASE_URL.startswith("postgres"):
+if DATABASE_URL.startswith("postgres"):
     # Render / Supabase supply postgres:// — SQLAlchemy 2.x needs postgresql://
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
     from sqlalchemy.pool import NullPool
     engine = create_engine(DATABASE_URL, poolclass=NullPool)
 else:
