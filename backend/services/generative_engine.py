@@ -16,7 +16,9 @@ from PIL import Image, ImageFilter, ImageDraw, ImageFont
 logger = logging.getLogger(__name__)
 
 USE_MOCK = os.getenv("MOCK_ML", "true").lower() == "true"
-OUTPUT_DIR = os.getenv("GENERATED_DIR", "/app/generated")
+# Default to <backend>/data/generated so files land under the static media server
+_DEFAULT_GENERATED_DIR = str(Path(__file__).resolve().parent.parent / "data" / "generated")
+OUTPUT_DIR = os.getenv("GENERATED_DIR", _DEFAULT_GENERATED_DIR)
 
 STRESSOR_PROMPTS = {
     "occlusion_20": "partially obscured by foreground objects, 20% occluded, debris in foreground",

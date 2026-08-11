@@ -186,15 +186,24 @@ def full_pipeline_task(self, project_id: str):
     try:
         # Clear existing generations for this project
         db.query(GeneratedImage).filter(GeneratedImage.project_id == project_id).delete()
-        
+
+        # The data directory is the root served by /media
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
         for fpath, stressor_key in refined_pairs:
-            # Full relative path for the frontend media server
-            rel_path = f"generated/{project_id}/raw/{os.path.basename(fpath)}"
-            
+            # Derive storage_key as the path relative to data_dir so it
+            # matches what the /media static file server can resolve.
+            abs_fpath = os.path.abspath(fpath)
+            try:
+                rel_path = os.path.relpath(abs_fpath, data_dir).replace("\\", "/")
+            except ValueError:
+                # If on different drives (Windows edge-case), fall back to basename
+                rel_path = f"generated/{project_id}/raw/{os.path.basename(fpath)}"
+
             # Generate a mock confidence score based on the stressor severity
-            conf = 0.5 + (0.4 - 0.1 * len(stressor_key)) # pseudo-random low confidence
-            conf = max(0.1, min(0.65, conf)) 
-            
+            conf = 0.5 + (0.4 - 0.1 * len(stressor_key))  # pseudo-random low confidence
+            conf = max(0.1, min(0.65, conf))
+
             gen = GeneratedImage(
                 project_id=project_id,
                 stressor=stressor_key,

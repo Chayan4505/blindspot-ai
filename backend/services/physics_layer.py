@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 USE_BLENDER = os.getenv("USE_BLENDER", "false").lower() == "true"
 BLENDER_PATH = os.getenv("BLENDER_PATH", "/usr/bin/blender")
-OUTPUT_DIR = os.getenv("GENERATED_DIR", "/app/generated")
+# Default to <backend>/data/generated so files land under the static media server
+_DEFAULT_GENERATED_DIR = str(Path(__file__).resolve().parent.parent / "data" / "generated")
+OUTPUT_DIR = os.getenv("GENERATED_DIR", _DEFAULT_GENERATED_DIR)
 
 
 def apply_physics_stressors(
